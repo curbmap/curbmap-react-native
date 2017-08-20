@@ -3,6 +3,8 @@ import React, { Component } from 'react'
 import MapView from 'react-native-maps'
 import { StyleSheet, AsyncStorage, View } from 'react-native'
 import { isSignedIn } from './auth'
+import ActionButton from 'react-native-action-button';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 const Permissions = require('react-native-permissions')
 
@@ -13,6 +15,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    zIndex: -1,
   },
   viewwindow: {
     position: 'absolute',
@@ -20,6 +23,16 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+  },
+  actionButton: {
+    zIndex: 10,
+    bottom: 10,
+    right: 10,
+  },
+  actionButtonIcon: {
+    fontSize: 20,
+    height: 22,
+    color: 'white',
   },
 })
 
@@ -51,12 +64,11 @@ class Map extends Component {
     username: 'curbmaptest',
     session: '',
     checkedSignIn: false,
+    locationManuallyChanged: false,
   }
 
   componentWillMount() {
-    if (this.canGetLocation() === 'authorized') {
-      this.watchLocation()
-    }
+    this.canGetLocation()
     if (this.props.session) {
       this.setState({
         username: this.props.username,
@@ -152,18 +164,21 @@ class Map extends Component {
   };
 
   canGetLocation = async () => {
-    if (this.state.locationPermission === undefined) { 
+    let permission = undefined
+    if (this.state.locationPermission === undefined) {
       Permissions.check('location').then((response) => {
         this.setState({ locationPermission: response })
+        permission = response
       })
     } else if (this.state.locationPermission === 'undetermined') {
       // Open location settings
       Permissions.request('location')
         .then((response) => {
           this.setState({ locationPermission: response })
+          permission = response
         })
     }
-    return this.state.locationPermission
+    return permission
   }
 
   processLines = async (linesJSON) => {
@@ -226,12 +241,39 @@ class Map extends Component {
     return color
   };
 
-  watchLocation = async () => {
-    const { status } = await this.canGetLocation()
-    if (status !== 'authorized') {
-      this.setState({
-        errorMessage: 'Permission to access location was denied',
+  onRegionManuallyChanged = (position) => {
+    this.watcher = null
+    this.setState({locationManuallyChanged: true})
+  }
+
+  startFollowing = () => {
+    this.setState({locationManuallyChanged: false})
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        this.setState({
+          region: {
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            latitudeDelta: LATITUDE_DELTA,
+            longitudeDelta: LONGITUDE_DELTA
+          },
+        })
+      },
+      () => {
+        this.setState({
+          errorMessage: 'Could not get position',
+        })
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
       })
+    this.watchLocation(true)
+  }
+
+  watchLocation = async (force = false) => {
+    if ((!force) && (this.state.locationPermission !== 'authorized' || this.state.locationManuallyChanged === true)) {
       return
     }
 
@@ -265,27 +307,36 @@ class Map extends Component {
 
 
   render() {
+    if (this.watcher === undefined) {
+      this.watchLocation()
+    }
     return (
       <View style={styles.viewwindow}>
-        <MapView
-          style={styles.map}
-          region={this.state.region}
-          onRegionChange={this.onRegionChange}
-          onRegionChangeComplete={this.onRegionChangeComplete}
-          loadingEnabled
-          showsUserLocation
-        >
-          { this.state.polylineList.map(
-            polyline =>
-              (<MapView.Polyline
-                key={polyline.id}
-                coordinates={polyline.coordinates}
-                strokeColor={polyline.color}
-                strokeWidth={2}
-              />),
-          )
-          }
-        </MapView>
+      <MapView
+      style={styles.map}
+      region={this.state.region}
+      onRegionChange={this.onRegionChange}
+      onRegionChangeComplete={this.onRegionChangeComplete}
+      onPanDrag={this.onRegionManuallyChanged}
+      loadingEnabled
+      showsUserLocation
+      >
+      { this.state.polylineList.map(
+        polyline =>
+        (<MapView.Polyline
+          key={polyline.id}
+          coordinates={polyline.coordinates}
+          strokeColor={polyline.color}
+          strokeWidth={2}
+          />),
+      )
+      }
+      </MapView>
+      <ActionButton style={styles.actionButton} buttonColor="rgba(231,76,60,1)">
+      <ActionButton.Item buttonColor="rgba(100,200,100,0.5)" title="Follow me" onPress={() => {this.startFollowing()}}>
+      <Icon name="md-navigate" style={styles.actionButtonIcon} />
+      </ActionButton.Item>
+      </ActionButton>
       </View>
     )
   }
