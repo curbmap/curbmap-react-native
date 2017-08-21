@@ -1,10 +1,12 @@
 /* eslint-env browser */
 import React, { Component } from 'react'
+import { PropTypes } from 'prop-types'
 import MapView from 'react-native-maps'
-import { StyleSheet, AsyncStorage, View } from 'react-native'
+import { StyleSheet, AsyncStorage, View, Platform } from 'react-native'
+import ActionButton from 'react-native-action-button'
+import Icon from 'react-native-vector-icons/Ionicons'
+import _ from 'lodash'
 import { isSignedIn } from './auth'
-import ActionButton from 'react-native-action-button';
-import Icon from 'react-native-vector-icons/Ionicons';
 
 const Permissions = require('react-native-permissions')
 
@@ -37,7 +39,7 @@ const styles = StyleSheet.create({
 })
 
 function template(strings, ...keys) {
-  return ((...values) => {
+  return (...values) => {
     const dict = values[values.length - 1] || {}
     const result = [strings[0]]
     keys.forEach((key, i) => {
@@ -45,30 +47,37 @@ function template(strings, ...keys) {
       result.push(value, strings[i + 1])
     })
     return result.join('')
-  })
+  }
 }
-
 
 let LATITUDE_DELTA = 0.02
 let LONGITUDE_DELTA = 0.02
+const debouncedPan = function () {}
 
 class Map extends Component {
+  static propTypes = {
+    username: PropTypes.string,
+    session: PropTypes.string,
+  }
   state = {
-    region: {
+    region: new MapView.AnimatedRegion({
       latitude: 34.0928,
       longitude: -118.3587,
       latitudeDelta: LATITUDE_DELTA,
       longitudeDelta: LONGITUDE_DELTA,
-    },
+    }),
     polylineList: [],
     username: 'curbmaptest',
     session: '',
     checkedSignIn: false,
     locationManuallyChanged: false,
+    isAndroid: false,
   }
 
   componentWillMount() {
+    this.getOS()
     this.canGetLocation()
+    this.debouncedPan = _.throttle(this.onRegionManuallyChanged, 100)
     if (this.props.session) {
       this.setState({
         username: this.props.username,
@@ -120,30 +129,66 @@ class Map extends Component {
 
   onRegionChange = (region) => {
     this.setState({ region })
-  };
+  }
 
   onRegionChangeComplete = (region) => {
     this.setState({ moved: true })
-    setTimeout(() => { this.setState({ moved: false }) }, 1000)
+    setTimeout(() => {
+      this.setState({ moved: false })
+    }, 1000)
     if (region.latitudeDelta < 10) {
       LATITUDE_DELTA = region.latitudeDelta
       LONGITUDE_DELTA = region.longitudeDelta // from the zoom level at resting
     }
+    this.requestLines()
+  }
+  onRegionManuallyChanged = (position) => {
+    this.watcher = null
+    this.setState({ locationManuallyChanged: true })
+    if (!this.state.isAndroid) {
+      const coord = position.nativeEvent.coordinate
+      this.setState({
+        region: new MapView.AnimatedRegion({
+          latitude: coord.latitude,
+          longitude: coord.longitude,
+          latitudeDelta: LATITUDE_DELTA,
+          longitudeDelta: LONGITUDE_DELTA,
+        }),
+      })
+    }
+    this.requestLines()
+  }
 
+  onPanDrag = (position) => {
+    position.persist()
+    this.debouncedPan(position)
+  }
+
+  getOS = () => {
+    if (Platform.OS === 'android') {
+      this.setState({ isAndroid: true })
+    }
+  }
+
+  requestLines = () => {
     if (this.state.session) {
       // temporary fix for huge amounts of data, adding the user=... attribute
       const urlstring = template`https://curbmap.com:50003/areaPolygon?lat1=${0}&lng1=${1}&lat2=${2}&lng2=${3}`
       let urlstringfixed
       if (LONGITUDE_DELTA < 0.012) {
-        urlstringfixed = urlstring((this.state.region.latitude - LATITUDE_DELTA),
-          (this.state.region.longitude - LONGITUDE_DELTA),
-          (this.state.region.latitude + LATITUDE_DELTA),
-          (this.state.region.longitude + LONGITUDE_DELTA))
+        urlstringfixed = urlstring(
+          this.state.region.latitude - LATITUDE_DELTA,
+          this.state.region.longitude - LONGITUDE_DELTA,
+          this.state.region.latitude + LATITUDE_DELTA,
+          this.state.region.longitude + LONGITUDE_DELTA,
+        )
       } else {
-        urlstringfixed = urlstring((this.state.region.latitude - 0.012),
-          (this.state.region.longitude - 0.012),
-          (this.state.region.latitude + 0.012),
-          (this.state.region.longitude + 0.012))
+        urlstringfixed = urlstring(
+          this.state.region.latitude - 0.012,
+          this.state.region.longitude - 0.012,
+          this.state.region.latitude + 0.012,
+          this.state.region.longitude + 0.012,
+        )
       }
       console.log(`fetching with u: ${this.state.username} session: ${this.state.session}`)
       this.state.time_start = new Date().getTime()
@@ -161,24 +206,6 @@ class Map extends Component {
           console.log(`Line 153 ERROR:   ${e}`)
         })
     }
-  };
-
-  canGetLocation = async () => {
-    let permission = undefined
-    if (this.state.locationPermission === undefined) {
-      Permissions.check('location').then((response) => {
-        this.setState({ locationPermission: response })
-        permission = response
-      })
-    } else if (this.state.locationPermission === 'undetermined') {
-      // Open location settings
-      Permissions.request('location')
-        .then((response) => {
-          this.setState({ locationPermission: response })
-          permission = response
-        })
-    }
-    return permission
   }
 
   processLines = async (linesJSON) => {
@@ -203,7 +230,7 @@ class Map extends Component {
     this.setState({})
     // CONSOLE OUTPUT:
     console.log(`time taken: ${new Date().getTime() - start}`)
-  };
+  }
 
   constructColorFromLineRestrs = (lineRestrs) => {
     let color = ''
@@ -239,24 +266,36 @@ class Map extends Component {
       }
     })
     return color
-  };
+  }
 
-  onRegionManuallyChanged = (position) => {
-    this.watcher = null
-    this.setState({locationManuallyChanged: true})
+  canGetLocation = async () => {
+    let permission
+    if (this.state.locationPermission === undefined) {
+      Permissions.check('location').then((response) => {
+        this.setState({ locationPermission: response })
+        permission = response
+      })
+    } else if (this.state.locationPermission === 'undetermined') {
+      // Open location settings
+      Permissions.request('location').then((response) => {
+        this.setState({ locationPermission: response })
+        permission = response
+      })
+    }
+    return permission
   }
 
   startFollowing = () => {
-    this.setState({locationManuallyChanged: false})
+    this.setState({ locationManuallyChanged: false })
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         this.setState({
-          region: {
+          region: new MapView.AnimatedRegion({
             latitude: coords.latitude,
             longitude: coords.longitude,
             latitudeDelta: LATITUDE_DELTA,
-            longitudeDelta: LONGITUDE_DELTA
-          },
+            longitudeDelta: LONGITUDE_DELTA,
+          }),
         })
       },
       () => {
@@ -267,25 +306,30 @@ class Map extends Component {
       {
         enableHighAccuracy: true,
         timeout: 5000,
-        maximumAge: 0
-      })
+        maximumAge: 0,
+      },
+    )
     this.watchLocation(true)
   }
 
   watchLocation = async (force = false) => {
-    if ((!force) && (this.state.locationPermission !== 'authorized' || this.state.locationManuallyChanged === true)) {
+    if (
+      !force &&
+      (this.state.locationPermission !== 'authorized' ||
+        this.state.locationManuallyChanged === true)
+    ) {
       return
     }
 
     this.watcher = await navigator.geolocation.watchPosition(
       ({ coords }) => {
         this.setState({
-          region: {
+          region: new MapView.AnimatedRegion({
             latitude: coords.latitude,
             longitude: coords.longitude,
             latitudeDelta: LATITUDE_DELTA,
             longitudeDelta: LONGITUDE_DELTA,
-          },
+          }),
         })
       },
       () => {
@@ -299,12 +343,11 @@ class Map extends Component {
         distanceFilter: 10,
       },
     )
-  };
+  }
 
   linePressed = (lineid) => {
     console.log(`Line Pressed:${lineid}`)
   }
-
 
   render() {
     if (this.watcher === undefined) {
@@ -312,31 +355,37 @@ class Map extends Component {
     }
     return (
       <View style={styles.viewwindow}>
-      <MapView
-      style={styles.map}
-      region={this.state.region}
-      onRegionChange={this.onRegionChange}
-      onRegionChangeComplete={this.onRegionChangeComplete}
-      onPanDrag={this.onRegionManuallyChanged}
-      loadingEnabled
-      showsUserLocation
-      >
-      { this.state.polylineList.map(
-        polyline =>
-        (<MapView.Polyline
-          key={polyline.id}
-          coordinates={polyline.coordinates}
-          strokeColor={polyline.color}
-          strokeWidth={2}
-          />),
-      )
-      }
-      </MapView>
-      <ActionButton style={styles.actionButton} buttonColor="rgba(231,76,60,1)">
-      <ActionButton.Item buttonColor="rgba(100,200,100,0.5)" title="Follow me" onPress={() => {this.startFollowing()}}>
-      <Icon name="md-navigate" style={styles.actionButtonIcon} />
-      </ActionButton.Item>
-      </ActionButton>
+        <MapView.Animated
+          style={styles.map}
+          region={this.state.region}
+          onRegionChange={this.onRegionChange}
+          onRegionChangeComplete={this.onRegionChangeComplete}
+          onPanDrag={e => this.onPanDrag(e)}
+          followsUserLocation={!this.state.locationManuallyChanged}
+          loadingEnabled
+          scrollEnabled={this.state.isAndroid}
+          showsUserLocation
+        >
+          {this.state.polylineList.map(polyline =>
+            (<MapView.Polyline
+              key={polyline.id}
+              coordinates={polyline.coordinates}
+              strokeColor={polyline.color}
+              strokeWidth={2}
+            />),
+          )}
+        </MapView.Animated>
+        <ActionButton style={styles.actionButton} buttonColor="rgba(231,76,60,1)">
+          <ActionButton.Item
+            buttonColor="rgba(100,200,100,0.5)"
+            title="Follow me"
+            onPress={() => {
+              this.startFollowing()
+            }}
+          >
+            <Icon name="md-navigate" style={styles.actionButtonIcon} />
+          </ActionButton.Item>
+        </ActionButton>
       </View>
     )
   }

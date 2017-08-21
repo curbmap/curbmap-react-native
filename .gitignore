@@ -1,3 +1,8 @@
 node_modules/
 .expo/
 npm-debug.*
+
+android/build/
+android/app/build/
+
+ios/cmreactnative.xcodeproj/project.xcworkspace/xcuserdata/
