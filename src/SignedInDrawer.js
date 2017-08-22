@@ -1,7 +1,7 @@
-import React, { Component } from '../node_modules/react'
-import { COLOR, ThemeProvider } from '../node_modules/react-native-material-ui'
-import { StyleSheet, View, Image, Text, Dimensions, AsyncStorage } from '../node_modules/react-native'
-import { Button } from '../node_modules/react-native-elements'
+import React, { Component } from 'react'
+import { COLOR, ThemeProvider } from 'react-native-material-ui'
+import { StyleSheet, View, Image, Text, Dimensions, AsyncStorage } from 'react-native'
+import { Button } from 'react-native-elements'
 
 const { height } = Dimensions.get('window')
 
@@ -142,8 +142,12 @@ export default class SignedInDrawer extends Component {
             </View>
             <View style={styles.userinfo}>
               <Text style={styles.username} />
-              <Text style={styles.username}>{this.state.username}</Text>
-              <Text style={styles.userscore}>SCORE: {this.state.score}</Text>
+              <Text style={styles.username}>
+                {this.state.username}
+              </Text>
+              <Text style={styles.userscore}>
+                SCORE: {this.state.score}
+              </Text>
             </View>
           </View>
           <View style={styles.bodySection}>
@@ -179,7 +183,6 @@ export default class SignedInDrawer extends Component {
               Settings
             </Button>
           </View>
-
         </View>
       </ThemeProvider>
     )

@@ -2,41 +2,83 @@
 import React, { Component } from 'react'
 import { PropTypes } from 'prop-types'
 import MapView from 'react-native-maps'
-import { StyleSheet, AsyncStorage, View, Platform } from 'react-native'
+import {
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  AsyncStorage,
+  View,
+  Platform,
+  Dimensions,
+} from 'react-native'
 import ActionButton from 'react-native-action-button'
 import Icon from 'react-native-vector-icons/Ionicons'
-import _ from 'lodash'
 import { isSignedIn } from './auth'
+import { renderIf } from './renderIf'
 
 const Permissions = require('react-native-permissions')
 
-const styles = StyleSheet.create({
-  map: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: -1,
-  },
-  viewwindow: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  actionButton: {
-    zIndex: 10,
-    bottom: 10,
-    right: 10,
-  },
-  actionButtonIcon: {
-    fontSize: 20,
-    height: 22,
-    color: 'white',
-  },
-})
+let styles = generateStyles()
+function generateStyles() {
+  const { width } = Dimensions.get('window')
+  return StyleSheet.create({
+    map: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: -1,
+    },
+    viewwindow: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+    actionButton: {
+      zIndex: 10,
+      bottom: 10,
+      right: 10,
+    },
+    actionButtonIcon: {
+      fontSize: 20,
+      height: 22,
+      color: 'white',
+    },
+    modalWindow: {
+      flex: 0.5,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    modalHolder: {
+      marginTop: 50,
+      marginLeft: width / 2,
+      flex: 0.2,
+      flexDirection: 'column',
+      alignItems: 'flex-start',
+      justifyContent: 'flex-start',
+      backgroundColor: 'rgba(180,180,180,0.65)',
+    },
+    modalWindowHeader: {
+      padding: 5,
+      width: width / 2,
+      backgroundColor: 'rgba(80,80,80, .9)',
+    },
+    modalWindowText: {
+      padding: 5,
+    },
+    modalText: {
+      color: 'black',
+      fontWeight: 'bold',
+    },
+    modalHeader: {
+      color: 'white',
+    },
+  })
+}
 
 function template(strings, ...keys) {
   return (...values) => {
@@ -52,7 +94,6 @@ function template(strings, ...keys) {
 
 let LATITUDE_DELTA = 0.02
 let LONGITUDE_DELTA = 0.02
-const debouncedPan = function () {}
 
 class Map extends Component {
   static propTypes = {
@@ -60,24 +101,25 @@ class Map extends Component {
     session: PropTypes.string,
   }
   state = {
-    region: new MapView.AnimatedRegion({
+    region: {
       latitude: 34.0928,
       longitude: -118.3587,
       latitudeDelta: LATITUDE_DELTA,
       longitudeDelta: LONGITUDE_DELTA,
-    }),
+    },
     polylineList: [],
     username: 'curbmaptest',
     session: '',
     checkedSignIn: false,
     locationManuallyChanged: false,
     isAndroid: false,
+    showModal: false,
   }
 
   componentWillMount() {
     this.getOS()
     this.canGetLocation()
-    this.debouncedPan = _.throttle(this.onRegionManuallyChanged, 100)
+    this.modalShow()
     if (this.props.session) {
       this.setState({
         username: this.props.username,
@@ -131,43 +173,33 @@ class Map extends Component {
     this.setState({ region })
   }
 
+  onPress = (latLng) => {
+    console.log('pressed')
+    this.watcher = null
+    this.setState({ locationManuallyChanged: true })
+  }
+
   onRegionChangeComplete = (region) => {
-    this.setState({ moved: true })
-    setTimeout(() => {
-      this.setState({ moved: false })
-    }, 1000)
+    this.setState({ moved: true, region })
     if (region.latitudeDelta < 10) {
       LATITUDE_DELTA = region.latitudeDelta
       LONGITUDE_DELTA = region.longitudeDelta // from the zoom level at resting
     }
     this.requestLines()
   }
-  onRegionManuallyChanged = (position) => {
-    this.watcher = null
-    this.setState({ locationManuallyChanged: true })
-    if (!this.state.isAndroid) {
-      const coord = position.nativeEvent.coordinate
-      this.setState({
-        region: new MapView.AnimatedRegion({
-          latitude: coord.latitude,
-          longitude: coord.longitude,
-          latitudeDelta: LATITUDE_DELTA,
-          longitudeDelta: LONGITUDE_DELTA,
-        }),
-      })
-    }
-    this.requestLines()
-  }
-
-  onPanDrag = (position) => {
-    position.persist()
-    this.debouncedPan(position)
-  }
 
   getOS = () => {
     if (Platform.OS === 'android') {
       this.setState({ isAndroid: true })
     }
+  }
+
+  modalShow = () => {
+    this.setState({ showModal: true })
+  }
+
+  modalDismiss = () => {
+    this.setState({ showModal: false })
   }
 
   requestLines = () => {
@@ -290,12 +322,12 @@ class Map extends Component {
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         this.setState({
-          region: new MapView.AnimatedRegion({
+          region: {
             latitude: coords.latitude,
             longitude: coords.longitude,
             latitudeDelta: LATITUDE_DELTA,
             longitudeDelta: LONGITUDE_DELTA,
-          }),
+          },
         })
       },
       () => {
@@ -324,12 +356,12 @@ class Map extends Component {
     this.watcher = await navigator.geolocation.watchPosition(
       ({ coords }) => {
         this.setState({
-          region: new MapView.AnimatedRegion({
+          region: {
             latitude: coords.latitude,
             longitude: coords.longitude,
             latitudeDelta: LATITUDE_DELTA,
             longitudeDelta: LONGITUDE_DELTA,
-          }),
+          },
         })
       },
       () => {
@@ -349,21 +381,46 @@ class Map extends Component {
     console.log(`Line Pressed:${lineid}`)
   }
 
+  getFollowing = () => (this.state.locationManuallyChanged ? 'disabled' : 'enabled')
+
+  onLayout = () => {
+    console.log('onLayout')
+    styles = generateStyles()
+  }
+
   render() {
     if (this.watcher === undefined) {
       this.watchLocation()
     }
     return (
-      <View style={styles.viewwindow}>
-        <MapView.Animated
+      <View
+        style={styles.viewwindow}
+        onLayout={() => {
+          this.onLayout()
+        }}
+      >
+        {this.state.showModal &&
+          <View style={styles.modalHolder}>
+            <View style={styles.modalWindowHeader}>
+              <TouchableOpacity onPress={this.modalDismiss}>
+                <Icon name="ios-close-circle" size={30} color="#4F8EF7" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.modalWindowText}>
+              <Text style={styles.modalText}>
+                {`Following is ${this.getFollowing()}`}
+              </Text>
+            </View>
+          </View>}
+        <MapView
           style={styles.map}
           region={this.state.region}
           onRegionChange={this.onRegionChange}
           onRegionChangeComplete={this.onRegionChangeComplete}
-          onPanDrag={e => this.onPanDrag(e)}
+          onPress={this.onPress}
           followsUserLocation={!this.state.locationManuallyChanged}
           loadingEnabled
-          scrollEnabled={this.state.isAndroid}
+          rotateEnabled
           showsUserLocation
         >
           {this.state.polylineList.map(polyline =>
@@ -374,7 +431,7 @@ class Map extends Component {
               strokeWidth={2}
             />),
           )}
-        </MapView.Animated>
+        </MapView>
         <ActionButton style={styles.actionButton} buttonColor="rgba(231,76,60,1)">
           <ActionButton.Item
             buttonColor="rgba(100,200,100,0.5)"

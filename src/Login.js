@@ -1,8 +1,8 @@
 /* eslint-env browser */
-import React, { Component } from '../node_modules/react'
-import { StyleSheet, View, Image, TextInput, Dimensions, AsyncStorage } from '../node_modules/react-native'
-import { Card, Button } from '../node_modules/react-native-elements'
-import { KeyboardAwareScrollView } from '../node_modules/react-native-keyboard-aware-scroll-view'
+import React, { Component } from 'react'
+import { StyleSheet, View, Image, TextInput, Dimensions, AsyncStorage } from 'react-native'
+import { Card, Button } from 'react-native-elements'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import MenuIcon from './MenuIcon'
 import curbmapImg from './assets/img/curbmap.png'
 
@@ -82,7 +82,10 @@ class Login extends Component {
         AsyncStorage.setItem('PASSWORD', this.state.pass) // if user needs to request a new oauth token
         AsyncStorage.setItem('BADGE', responseUserJSON.badge)
         AsyncStorage.setItem('SCORE', `${responseUserJSON.score}`)
-        this.props.navigation.navigate('SignedIn', { username: this.state.user, session: responseUserJSON.session })
+        this.props.navigation.navigate('SignedIn', {
+          username: this.state.user,
+          session: responseUserJSON.session,
+        })
       })
       .catch((e) => {
         console.log(`Error in login: ${e}`)
