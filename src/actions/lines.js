@@ -74,16 +74,25 @@ export function getLines(lat, lng, LONGITUDE_DELTA, LATITUDE_DELTA, auth, state)
       method: 'get',
       mode: 'cors',
       headers: {
+        'Accept-Encoding': 'gzip,deflate',
         session: auth.session,
         username: auth.username,
       },
     })
       .then(lines => lines.json())
       .then((linesJSON) => {
+        console.log('xxx')
+        console.log(lengthInUtf8Bytes(JSON.stringify(linesJSON)))
         dispatch(processLines(linesJSON, state))
       })
       .catch((e) => {
         console.log(`Line 28 lines.js ERROR:   ${e}`)
       })
   }
+}
+
+function lengthInUtf8Bytes(str) {
+  // Matches only the 10.. bytes that are non-initial characters in a multi-byte sequence.
+  const m = encodeURIComponent(str).match(/%[89ABab]/g)
+  return str.length + (m ? m.length : 0)
 }
