@@ -1,11 +1,9 @@
 # Curbmap React Native App
 
-(update for preferred npm since Xcode uses npm)
-
 ## iOS or Android
 **Install the dependencies**:
 ```
-npm i
+yarn install --force
 ```
 
 **Start the packager**
