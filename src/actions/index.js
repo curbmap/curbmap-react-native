@@ -1,4 +1,4 @@
 import * as AuthActions from './auth'
+import * as LinesActions from './lines'
 
-const ActionCreators = Object.assign({}, AuthActions)
-export default ActionCreators
+export const ActionCreators = Object.assign({}, AuthActions, LinesActions)

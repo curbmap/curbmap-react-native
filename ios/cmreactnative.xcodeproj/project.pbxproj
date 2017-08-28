@@ -303,7 +303,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		008F07F21AC5B25A0029DE68 /* main.jsbundle */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = main.jsbundle; sourceTree = "<group>"; };
 		00C302A71ABCB8CE00DB3ED1 /* RCTActionSheet.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = RCTActionSheet.xcodeproj; path = "../node_modules/react-native/Libraries/ActionSheetIOS/RCTActionSheet.xcodeproj"; sourceTree = "<group>"; };
 		00C302B51ABCB90400DB3ED1 /* RCTGeolocation.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = RCTGeolocation.xcodeproj; path = "../node_modules/react-native/Libraries/Geolocation/RCTGeolocation.xcodeproj"; sourceTree = "<group>"; };
 		00C302BB1ABCB91800DB3ED1 /* RCTImage.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = RCTImage.xcodeproj; path = "../node_modules/react-native/Libraries/Image/RCTImage.xcodeproj"; sourceTree = "<group>"; };
@@ -496,7 +495,6 @@
 		13B07FAE1A68108700A75B9A /* cmreactnative */ = {
 			isa = PBXGroup;
 			children = (
-				008F07F21AC5B25A0029DE68 /* main.jsbundle */,
 				13B07FAF1A68108700A75B9A /* AppDelegate.h */,
 				13B07FB01A68108700A75B9A /* AppDelegate.m */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
@@ -601,6 +599,7 @@
 				83CBBA001A601CBA00E9B192 /* Products */,
 				68A4B60B963340F0970A72C9 /* Resources */,
 				0D77C66A2BF443559B9E96A8 /* Frameworks */,
+				D5B88B291F534CE60069F816 /* Recovered References */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -623,6 +622,17 @@
 				D55740ED1F4F9876008C61E8 /* libRealmReact.a */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		D5B88B291F534CE60069F816 /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				40173F13CE3A49FB8ACFD938 /* libAirMaps.a */,
+				A505B3A49B5F4EA69C4AE59F /* libReactNativePermissions.a */,
+				8BF0180CA25A4A8FB040CA7E /* libRNVectorIcons.a */,
+				B6A43F9CDEA64193BCBF6967 /* libRealmReact.a */,
+			);
+			name = "Recovered References";
 			sourceTree = "<group>";
 		};
 		D5F1AAD41F47F913005EB8C5 /* Products */ = {
@@ -1473,7 +1483,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer: Eli Selkin (NXP5CSHFG2)";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
 				DEVELOPMENT_TEAM = CNKFCAS44G;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;

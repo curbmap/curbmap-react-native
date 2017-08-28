@@ -1,4 +1,6 @@
 import { combineReducers } from 'redux'
 import * as AuthReducers from './auth'
+import * as LinesReducers from './lines'
 
-export default combineReducers(Object.assign({}, AuthReducers))
+const reducers = combineReducers(Object.assign({}, AuthReducers, LinesReducers))
+export default reducers

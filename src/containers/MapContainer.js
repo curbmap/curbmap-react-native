@@ -1,7 +1,7 @@
 import React, { Component } from 'react'
 import { StyleSheet, View, Image } from 'react-native'
 import MenuIcon from '../MenuIcon'
-// import Map from './Map'
+import Map from '../components/Map'
 
 const styles = StyleSheet.create({
   full: {
@@ -13,7 +13,7 @@ const styles = StyleSheet.create({
   },
 })
 
-class Home extends Component {
+class MapContainer extends Component {
   static navigationOptions = {
     drawerLabel: 'Map Home',
     drawerIcon: ({ tintColor }) => <Image style={[styles.icon, { tintColor }]} />,
@@ -24,14 +24,14 @@ class Home extends Component {
   }
   render() {
     const { navigate } = this.props.navigation
-    // const map = <Map {...this.props.navigation.state} />
+    const map = <Map {...this.props} />
     return (
       <View style={styles.full}>
         <MenuIcon onPress={() => navigate('DrawerOpen')} />
-        {/* {map} */}
+        {map}
       </View>
     )
   }
 }
 
-export default Home
+export default MapContainer

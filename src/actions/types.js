@@ -1,4 +1,3 @@
-export const LOGIN = 'LOGIN'
-export const LOGOUT = 'LOGOUT'
+export const AUTH = 'AUTH'
 export const SIGNUP = 'SIGNUP'
-export const CREATE_ROOT_NAVIGATOR = 'CREATE_ROOT_NAVIGATOR'
+export const LINES = 'LINES'

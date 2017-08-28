@@ -2,25 +2,21 @@ import React, { Component } from 'react'
 import { connect } from 'react-redux'
 import { bindActionCreators } from 'redux'
 import * as ActionCreators from '../actions'
-import createRootNavigator from '../lib/routing'
+import Home from './Home'
 
 class Main extends Component {
   componentDidMount() {}
   render() {
-    const FirstView = createRootNavigator(this.props.user.loggedIn)
-    return <FirstView />
+    return <Home {...this.props} />
   }
-}
-function mapDispatchToProps(dispatch) {
-  return bindActionCreators(ActionCreators, dispatch)
 }
 
 function mapStateToProps(state) {
   return {
-    user: state.default,
+    auth: state.auth,
     navigationState: state.navigationState,
   }
 }
 
 // Shouldn't we really be using store defined above here?
-export default connect(mapStateToProps, mapDispatchToProps)(Main)
+export default connect(() => ({}), mapStateToProps)(Main)

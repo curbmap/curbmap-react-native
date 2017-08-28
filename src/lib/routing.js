@@ -53,6 +53,8 @@ const SignedIn = DrawerNavigator(
 )
 
 export default function createRootNavigator(signedIn = false) {
+  console.log('yyy')
+  console.log(signedIn)
   return StackNavigator(
     {
       SignedIn: {
