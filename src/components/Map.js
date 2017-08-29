@@ -86,6 +86,7 @@ class Map extends Component {
     locationManuallyChanged: false,
     isAndroid: false,
     showModal: false,
+    moved: false,
   }
 
   componentWillMount() {
@@ -102,14 +103,17 @@ class Map extends Component {
 
   onRegionChange = (region) => {
     if (region.latitudeDelta < 10) {
-      LATITUDE_DELTA = region.latitudeDelta
-      LONGITUDE_DELTA = region.longitudeDelta // from the zoom level at resting
+      LATITUDE_DELTA = region.latitudeDelta / 2
+      LONGITUDE_DELTA = region.longitudeDelta / 2 // from the zoom level at resting
     }
-    this.setState({ region })
+    this.setState({ region, moved: true })
+    setTimeout(this.resetMoved, 5)
   }
+
   onRegionChangeComplete = (region) => {
     this.requestLinesThrottled()
   }
+
   onPress = (latLng) => {
     this.watcher = null
     this.setState({ locationManuallyChanged: true })
@@ -127,6 +131,10 @@ class Map extends Component {
 
   getFollowing = () => (this.state.locationManuallyChanged ? 'disabled' : 'enabled')
 
+  resetMoved = () => {
+    this.setState({ moved: false })
+  }
+
   modalShow = () => {
     this.setState({ showModal: true })
   }
@@ -139,14 +147,16 @@ class Map extends Component {
     const action = ActionCreators.ActionCreators.getLines(
       this.state.region.latitude,
       this.state.region.longitude,
-      LATITUDE_DELTA,
+      LATITUDE_DELTA, // should have been halved already
       LONGITUDE_DELTA,
       this.props.auth,
       this.props.lines,
     )
-    this.props.dispatch(action)
+    if (!this.state.moved) {
+      this.props.dispatch(action)
+    }
   }
-  requestLinesThrottled = _.debounce(this.requestLines, 300)
+  requestLinesThrottled = _.debounce(this.requestLines, 100)
 
   canGetLocation = async () => {
     let permission
@@ -173,8 +183,8 @@ class Map extends Component {
           region: {
             latitude: coords.latitude,
             longitude: coords.longitude,
-            latitudeDelta: LATITUDE_DELTA,
-            longitudeDelta: LONGITUDE_DELTA,
+            latitudeDelta: LATITUDE_DELTA * 2,
+            longitudeDelta: LONGITUDE_DELTA * 2,
           },
         })
       },
@@ -197,8 +207,8 @@ class Map extends Component {
       region: {
         latitude: coords.latitude,
         longitude: coords.longitude,
-        latitudeDelta: LATITUDE_DELTA,
-        longitudeDelta: LONGITUDE_DELTA,
+        latitudeDelta: LATITUDE_DELTA * 2,
+        longitudeDelta: LONGITUDE_DELTA * 2,
       },
     })
   }
