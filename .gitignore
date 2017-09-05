@@ -23,7 +23,7 @@ DerivedData/
 *.perspectivev3
 !default.perspectivev3
 xcuserdata/
-
+package-lock.json
 ## Other
 *.moved-aside
 *.xccheckout
