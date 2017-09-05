@@ -1,6 +1,7 @@
 package com.cmreactnative;
 
 import com.facebook.react.ReactActivity;
+import com.airbnb.android.react.maps.MapsPackage;
 import com.oblador.vectoricons.VectorIconsPackage;
 import com.airbnb.android.react.maps.MapsPackage;
 
