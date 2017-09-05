@@ -59,35 +59,47 @@ export function processLines(linesJSON, state) {
   return { type: types.LINES, lines: polylineMap }
 }
 
-export function getLines(lat, lng, LONGITUDE_DELTA, LATITUDE_DELTA, auth, state) {
+export function getLines(region) {
   return (dispatch, getState) => {
     const urlstring = template`https://curbmap.com:50003/areaPolygon?lat1=${0}&lng1=${1}&lat2=${2}&lng2=${3}`
-    const LNG_DELTA_MIN = Math.min(LONGITUDE_DELTA, 0.012)
-    const LAT_DELTA_MIN = Math.min(LATITUDE_DELTA, 0.012)
+    const LNG_DELTA_MIN = Math.min(region.longitudeDelta, 0.012)
+    const LAT_DELTA_MIN = Math.min(region.latitudeDelta, 0.012)
     const urlstringfixed = urlstring(
-      lat - LAT_DELTA_MIN,
-      lng - LNG_DELTA_MIN,
-      lat + LAT_DELTA_MIN,
-      lng + LNG_DELTA_MIN,
+      region.latitude - LAT_DELTA_MIN,
+      region.longitude - LNG_DELTA_MIN,
+      region.latitude + LAT_DELTA_MIN,
+      region.longitude + LNG_DELTA_MIN,
     )
-    fetch(urlstringfixed, {
-      method: 'get',
-      mode: 'cors',
-      headers: {
-        'Accept-Encoding': 'gzip,deflate',
-        session: auth.session,
-        username: auth.username,
-      },
-    })
-      .then(lines => lines.json())
-      .then((linesJSON) => {
-        console.log('xxx')
-        console.log(lengthInUtf8Bytes(JSON.stringify(linesJSON)))
-        dispatch(processLines(linesJSON, state))
+    const firstTestRegion = getState().region
+    if (
+      firstTestRegion.longitude === region.longitude &&
+      firstTestRegion.latitude === region.latitude
+    ) {
+      fetch(urlstringfixed, {
+        method: 'get',
+        mode: 'cors',
+        headers: {
+          session: getState().auth.session,
+          username: getState().auth.username,
+        },
       })
-      .catch((e) => {
-        console.log(`Line 28 lines.js ERROR:   ${e}`)
-      })
+        .then((lines) => {
+          const secondTestRegion = getState().region
+          if (
+            secondTestRegion.longitude === region.longitude &&
+            secondTestRegion.latitude === region.latitude
+          ) {
+            return lines.json()
+          }
+          throw new Error('Error getting state')
+        })
+        .then((linesJSON) => {
+          dispatch(processLines(linesJSON, getState().lines))
+        })
+        .catch((e) => {
+          console.log(`Line 28 lines.js ERROR:   ${e}`)
+        })
+    }
   }
 }
 

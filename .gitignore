@@ -6,6 +6,8 @@ android/build/
 android/app/build/
 
 ios/cmreactnative.xcodeproj/project.xcworkspace/xcuserdata/
+ios/cmreactnative.xcodeproj/project.xcworkspace/xcuserdata/eliselkin.xcuserdatad/*
+ios/cmreactnative.xcodeproj/project.xcworkspace/
 
 ## Build generated
 build/

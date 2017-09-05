@@ -3,6 +3,7 @@ import React, { Component } from 'react'
 import MapView from 'react-native-maps'
 import { connect } from 'react-redux'
 import { Text, TouchableOpacity, StyleSheet, View, Platform, Dimensions } from 'react-native'
+import Spinner from 'react-native-loading-spinner-overlay'
 import _ from 'lodash'
 import ActionButton from 'react-native-action-button'
 import Icon from 'react-native-vector-icons/Ionicons'
@@ -77,15 +78,10 @@ let LONGITUDE_DELTA = 0.02
 
 class Map extends Component {
   state = {
-    region: {
-      latitude: 34.0928,
-      longitude: -118.3587,
-      latitudeDelta: LATITUDE_DELTA,
-      longitudeDelta: LONGITUDE_DELTA,
-    },
     locationManuallyChanged: false,
     isAndroid: false,
     showModal: false,
+    processing: false,
   }
 
   componentWillMount() {
@@ -102,14 +98,16 @@ class Map extends Component {
 
   onRegionChange = (region) => {
     if (region.latitudeDelta < 10) {
-      LATITUDE_DELTA = region.latitudeDelta
-      LONGITUDE_DELTA = region.longitudeDelta // from the zoom level at resting
+      LATITUDE_DELTA = region.latitudeDelta / 2
+      LONGITUDE_DELTA = region.longitudeDelta / 2 // from the zoom level at resting
     }
-    this.setState({ region })
+    const action = ActionCreators.ActionCreators.region(region)
+    this.props.dispatch(action)
   }
-  onRegionChangeComplete = (region) => {
-    this.requestLinesThrottled()
+  onRegionChangeComplete = () => {
+    this.requestLines()
   }
+
   onPress = (latLng) => {
     this.watcher = null
     this.setState({ locationManuallyChanged: true })
@@ -117,6 +115,10 @@ class Map extends Component {
 
   onLayout = () => {
     styles = generateStyles()
+  }
+
+  getProcessing() {
+    return this.state.processing
   }
 
   getOS = () => {
@@ -127,6 +129,10 @@ class Map extends Component {
 
   getFollowing = () => (this.state.locationManuallyChanged ? 'disabled' : 'enabled')
 
+  resetMoved = () => {
+    this.setState({ moved: false })
+  }
+
   modalShow = () => {
     this.setState({ showModal: true })
   }
@@ -135,18 +141,16 @@ class Map extends Component {
     this.setState({ showModal: false })
   }
 
+  stopProcessing = () => {
+    this.setState({ process: false })
+  }
+
   requestLines = () => {
-    const action = ActionCreators.ActionCreators.getLines(
-      this.state.region.latitude,
-      this.state.region.longitude,
-      LATITUDE_DELTA,
-      LONGITUDE_DELTA,
-      this.props.auth,
-      this.props.lines,
-    )
+    // this.setState({ processing: true })
+    // setTimeout(this.stopProcessing, 1000)
+    const action = ActionCreators.ActionCreators.getLines(this.props.region)
     this.props.dispatch(action)
   }
-  requestLinesThrottled = _.debounce(this.requestLines, 300)
 
   canGetLocation = async () => {
     let permission
@@ -169,14 +173,13 @@ class Map extends Component {
     this.setState({ locationManuallyChanged: false })
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
-        this.setState({
-          region: {
-            latitude: coords.latitude,
-            longitude: coords.longitude,
-            latitudeDelta: LATITUDE_DELTA,
-            longitudeDelta: LONGITUDE_DELTA,
-          },
+        const action = ActionCreators.ActionCreators.region({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          latitudeDelta: LATITUDE_DELTA,
+          longitudeDelta: LONGITUDE_DELTA,
         })
+        this.props.dispatch(action)
       },
       () => {
         this.setState({
@@ -192,17 +195,15 @@ class Map extends Component {
     this.watchLocation(true)
   }
 
-  updateStateDebounced = ({ coords }) => {
-    this.setState({
-      region: {
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-        latitudeDelta: LATITUDE_DELTA,
-        longitudeDelta: LONGITUDE_DELTA,
-      },
+  updateState = ({ coords }) => {
+    const action = ActionCreators.ActionCreators.region({
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+      latitudeDelta: LATITUDE_DELTA,
+      longitudeDelta: LONGITUDE_DELTA,
     })
+    this.props.dispatch(action)
   }
-  updateState = _.throttle(this.updateStateDebounced, 100)
   watchLocation = async (force = false) => {
     if (
       !force &&
@@ -241,7 +242,7 @@ class Map extends Component {
           this.onLayout()
         }}
       >
-        {this.state.showModal &&
+        {this.state.showModal && (
           <View style={styles.modalHolder}>
             <View style={styles.modalWindowHeader}>
               <TouchableOpacity onPress={this.modalDismiss}>
@@ -249,14 +250,21 @@ class Map extends Component {
               </TouchableOpacity>
             </View>
             <View style={styles.modalWindowText}>
+              <Spinner
+                visible={this.getProcessing()}
+                textContent={'processing lines...'}
+                textStyle={{ color: '#FFF' }}
+              />
               <Text style={styles.modalText}>
-                {`Following is ${this.getFollowing()}`}
+                {`Following is ${this.getFollowing()} \n`}
+                {this.getFollowing() === 'enabled' && <Text>{'tap map to disable'}</Text>}
               </Text>
             </View>
-          </View>}
+          </View>
+        )}
         <MapView
           style={styles.map}
-          region={this.state.region}
+          region={this.props.region}
           onRegionChange={this.onRegionChange}
           onRegionChangeComplete={this.onRegionChangeComplete}
           onPress={this.onPress}
@@ -265,14 +273,14 @@ class Map extends Component {
           rotateEnabled
           showsUserLocation
         >
-          {Object.keys(this.props.lines).map((key, index) =>
-            (<MapView.Polyline
+          {Object.keys(this.props.lines).map((key, index) => (
+            <MapView.Polyline
               key={this.props.lines[key].id}
               coordinates={this.props.lines[key].coordinates}
               strokeColor={this.props.lines[key].color}
               strokeWidth={2}
-            />),
-          )}
+            />
+          ))}
         </MapView>
         <ActionButton style={styles.actionButton} buttonColor="rgba(231,76,60,1)">
           <ActionButton.Item
@@ -294,6 +302,7 @@ function mapStateToProps(state) {
   return {
     auth: state.auth,
     lines: state.lines,
+    region: state.region,
   }
 }
 
