@@ -92,7 +92,7 @@ class Map extends Component {
 
   componentWillUnmount() {
     if (this.watcher) {
-      this.watcher = null
+      navigator.geolocation.clearWatch(this.watcher)
     }
   }
 
@@ -109,7 +109,7 @@ class Map extends Component {
   }
 
   onPress = (latLng) => {
-    this.watcher = null
+    navigator.geolocation.clearWatch(this.watcher)
     this.setState({ locationManuallyChanged: true })
   }
 
