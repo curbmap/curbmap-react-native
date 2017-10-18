@@ -164,6 +164,7 @@ class Map extends Component {
     }
     return permission
   }
+  
 
   startFollowing = () => {
     this.setState({ locationManuallyChanged: false })
